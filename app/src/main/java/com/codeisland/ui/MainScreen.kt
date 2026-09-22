@@ -49,8 +49,9 @@ fun MainScreen(
     onOpenAccessibilitySettings: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
+    initialTab: Int = 0,
 ) {
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(initialTab) }
 
     Scaffold(
         topBar = {
