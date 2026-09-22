@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  应用快捷方式。
+
+  ★ 这就是「侧键菜单」里那几条的来源。
+    三星的「打开应用程序或执行应用内功能」（长按侧键 / 双击侧键）会列出
+    每个 App 声明的快捷方式。米家那三条「打开笔记 / 键入笔记 / 用笔书写」
+    就是这么来的。
+
+    我们声明两条：
+      capture  → 捕获屏幕（截屏 → 识别 → 上岛，一条龙）
+      settings → 设置
+
+    ★ 注意「捕获屏幕」不是系统那个截屏：
+      它走的是本 App 的流程（无障碍截屏 → AI 识别 → 上岛），
+      所以**必须先开无障碍**，否则点了只会提示"截屏服务没开"。
+
+    targetClass 指向 MainActivity，但靠 intent 的 action 区分行为 ——
+    安卓 7.1+ 用 ShortcutInfo，7.1 以下系统会忽略这个文件。
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="capture"
+        android:enabled="true"
+        android:icon="@drawable/ic_tile"
+        android:shortcutShortLabel="@string/shortcut_capture_short"
+        android:shortcutLongLabel="@string/shortcut_capture_long">
+        <intent
+            android:action="com.codeisland.action.CAPTURE"
+            android:targetPackage="@string/shortcut_target_package"
+            android:targetClass="com.codeisland.ui.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_tile"
+        android:shortcutShortLabel="@string/shortcut_settings_short"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="com.codeisland.action.SETTINGS"
+            android:targetPackage="@string/shortcut_target_package"
+            android:targetClass="com.codeisland.ui.MainActivity" />
+    </shortcut>
+
+</shortcuts>
