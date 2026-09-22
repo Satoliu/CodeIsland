@@ -62,6 +62,7 @@ object CapturePipeline {
      */
     fun trigger(context: Context, onToast: ((String) -> Unit)? = null) {
         val appContext = context.applicationContext
+        Log.i(TAG, "trigger() 被调用")
 
         if (busy) {
             Log.i(TAG, "上一次还没跑完，这次点击忽略")
@@ -72,11 +73,13 @@ object CapturePipeline {
         if (service == null) {
             // 这是最常见的一种"坏掉了"：无障碍被系统关了。
             // 必须给一句**能直接照做**的提示，而不是干等。
+            Log.w(TAG, "无障碍服务实例为 null —— 服务没连接")
             val msg = "截屏服务没开，去「设置 → 无障碍 → 码上岛」打开"
             _state.value = State.Failure(msg)
             onToast?.invoke(msg)
             return
         }
+        Log.i(TAG, "无障碍服务实例正常，准备截屏")
 
         busy = true
         scope.launch {
@@ -87,6 +90,7 @@ object CapturePipeline {
                 val bitmap = withContext(Dispatchers.Main) {
                     captureOnce(service)
                 }
+                Log.i(TAG, "截屏返回：${if (bitmap == null) "null（失败）" else "${bitmap.width}x${bitmap.height}"}")
 
                 if (bitmap == null) {
                     _state.value = State.Failure("截屏失败")
@@ -99,6 +103,7 @@ object CapturePipeline {
                 try {
                     val result = dispatcher.recognize(bitmap)
                     val fallback = dispatcher.lastFallbackReason
+                    Log.i(TAG, "识别结果：${result?.code ?: "null"}  来源=${dispatcher.lastUsedChannel}  退回原因=$fallback")
 
                     if (result == null) {
                         val msg = "没认出来有码，再截清楚一点试试"
@@ -112,6 +117,7 @@ object CapturePipeline {
 
                     remember(settings, result)
                     notifier.show(result, settings.autoDismissSeconds)
+                    Log.i(TAG, "已调用上岛：${result.code}")
 
                     if (settings.autoCopy) notifier.copyToClipboard(result.code)
                     if (settings.vibrateOnSuccess) vibrate(appContext)
@@ -146,14 +152,16 @@ object CapturePipeline {
         service: CaptureAccessibilityService
     ): Bitmap? = withContext(Dispatchers.Main) {
         kotlinx.coroutines.suspendCancellableCoroutine<Bitmap?> { cont ->
+            Log.i(TAG, "调用 takeScreenshotNow…")
             service.takeScreenshotNow(
                 // 按约定，这里拿到的位图归我们所有，用完由调用方 recycle。
                 // 不再多复制一份 —— 全屏位图复制一次就是好几 MB。
                 onBitmap = { bmp ->
+                    Log.i(TAG, "截屏成功回调：${bmp.width}x${bmp.height}")
                     if (cont.isActive) cont.resume(bmp) else bmp.recycle()
                 },
                 onError = { err ->
-                    Log.w(TAG, "截屏失败：$err")
+                    Log.e(TAG, "截屏失败回调：$err")
                     if (cont.isActive) cont.resume(null)
                 }
             )
