@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import com.codeisland.island.IslandNotifier
+import com.codeisland.pipeline.CapturePipeline
 
 /**
  * 主界面。两个标签页：首页（截屏 + 看上次结果）和设置（触发方式 + API Key）。
@@ -36,11 +37,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         askNotificationPermission()
-        handleIntentExtras(intent)
+
+        // 先处理快捷方式带来的动作，再渲染界面
+        var startTab = 0
+        val action = intent?.action
+        when (action) {
+            ACTION_CAPTURE -> {
+                // 侧键菜单点了「捕获屏幕」：立刻走一遍截屏识别，然后切到首页看结果
+                CapturePipeline.trigger(applicationContext) { msg ->
+                    toast(msg)
+                }
+                startTab = 0
+            }
+            ACTION_SETTINGS -> startTab = 1
+            else -> handleIntentExtras(intent)
+        }
 
         setContent {
             CodeIslandTheme {
                 MainScreen(
+                    initialTab = startTab,
                     onOpenAccessibilitySettings = { openAccessibilitySettings() },
                     onOpenOverlaySettings = { openOverlaySettings() },
                     onRequestNotificationPermission = { askNotificationPermission() },
@@ -51,7 +67,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIntentExtras(intent)
+        setIntent(intent)
+
+        when (intent.action) {
+            ACTION_CAPTURE -> CapturePipeline.trigger(applicationContext) { msg -> toast(msg) }
+            ACTION_SETTINGS -> { /* 界面已经在设置页，不用动 */ }
+            else -> handleIntentExtras(intent)
+        }
     }
 
     /**
@@ -93,6 +115,14 @@ class MainActivity : ComponentActivity() {
 
     private fun toast(msg: String) {
         android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    companion object {
+        /** 侧键菜单「捕获屏幕」带过来的 action，要和 res/xml/shortcuts.xml 一致 */
+        const val ACTION_CAPTURE = "com.codeisland.action.CAPTURE"
+
+        /** 侧键菜单「设置」带过来的 action */
+        const val ACTION_SETTINGS = "com.codeisland.action.SETTINGS"
     }
 }
 
