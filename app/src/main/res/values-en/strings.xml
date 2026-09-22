@@ -8,6 +8,11 @@
 
     <string name="tile_label">CodeIsland</string>
 
+    <string name="shortcut_capture_short">Capture screen</string>
+    <string name="shortcut_capture_long">Capture screen and read the code</string>
+    <string name="shortcut_settings_short">Settings</string>
+    <string name="shortcut_settings_long">Open CodeIsland settings</string>
+
     <string name="notif_channel_island">Live code</string>
     <string name="notif_channel_island_desc">Shows the code you just captured</string>
     <string name="notif_channel_service">Background</string>
