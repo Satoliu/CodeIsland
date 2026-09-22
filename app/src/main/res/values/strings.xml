@@ -10,6 +10,12 @@
     <!-- 磁贴 -->
     <string name="tile_label">码上岛</string>
 
+    <!-- 应用快捷方式（侧键菜单里显示的） -->
+    <string name="shortcut_capture_short">捕获屏幕</string>
+    <string name="shortcut_capture_long">捕获屏幕并识别取码</string>
+    <string name="shortcut_settings_short">设置</string>
+    <string name="shortcut_settings_long">打开码上岛设置</string>
+
     <!-- 通知 -->
     <string name="notif_channel_island">上岛</string>
     <string name="notif_channel_island_desc">把识别到的码显示在最上面</string>
