@@ -13,6 +13,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.codeisland.R
 import com.codeisland.data.AppSettings
 import com.codeisland.model.ParsedCode
@@ -225,7 +226,9 @@ class IslandNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Action.Builder(
-            Icon.createWithResource(context, R.drawable.ic_tile),
+            // ★ 这里要的是 IconCompat，不是 android.graphics.drawable.Icon。
+            //   传 Icon 会报 "None of the following candidates is applicable"。
+            IconCompat.createWithResource(context, R.drawable.ic_tile),
             "复制",
             pi
         ).build()
@@ -242,7 +245,7 @@ class IslandNotifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Action.Builder(
-            Icon.createWithResource(context, R.drawable.ic_tile),
+            IconCompat.createWithResource(context, R.drawable.ic_tile),
             "收起",
             pi
         ).build()
