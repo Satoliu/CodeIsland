@@ -103,7 +103,7 @@ class CaptureAccessibilityService : AccessibilityService() {
             //   因为后面 onBitmap 要碰 UI 相关的东西（Toast / 通知 / 震动）。
             takeScreenshot(
                 Display.DEFAULT_DISPLAY,
-                mainExecutor,
+                screenshotExecutor,
                 object : TakeScreenshotCallback {
                     override fun onSuccess(result: ScreenshotResult) {
                         val hardwareBuffer = result.hardwareBuffer
@@ -165,8 +165,13 @@ class CaptureAccessibilityService : AccessibilityService() {
      *
      * 用主线程：截屏回调里会碰 Toast / 通知 / 震动，这些都得在主线程上做。
      * 注意它**不是** Handler —— 这两个类型在 Kotlin 里不能互相替换。
+     *
+     * ★ 名字不能叫 mainExecutor：Context 本身就有 getMainExecutor()，
+     *   Kotlin 属性 mainExecutor 会生成同名方法，编译器报
+     *   "Accidental override: same JVM signature (getMainExecutor())"。
+     *   所以这里叫 screenshotExecutor。
      */
-    private val mainExecutor: Executor by lazy {
+    private val screenshotExecutor: Executor by lazy {
         ContextCompat.getMainExecutor(this)
     }
 
