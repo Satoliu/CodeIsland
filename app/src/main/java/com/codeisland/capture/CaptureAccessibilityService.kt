@@ -1,15 +1,12 @@
 package com.codeisland.capture
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
-import com.codeisland.data.AppSettings
-import com.codeisland.pipeline.CapturePipeline
 import java.util.concurrent.Executor
 
 /**
@@ -38,38 +35,23 @@ class CaptureAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
 
-        // 动态把事件类型收窄到「只要触摸」。
-        // 就算 XML 里写得宽，这里也再收一次，双保险。
-        serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
-            eventTypes = AccessibilityEvent.TYPE_TOUCH_INTERACTION_START or
-                    AccessibilityEvent.TYPE_TOUCH_INTERACTION_END
-            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            flags = AccessibilityServiceInfo.DEFAULT
-            notificationTimeout = 0
-        }
-
+        // ★ 这里**故意不碰 serviceInfo**。
+        //
+        //   旧版本在这个方法里做 `serviceInfo = serviceInfo.apply { eventTypes = ... }`，
+        //   想把事件类型收窄成"只要触摸"，用来支持双击触发。
+        //   实测（SM-S9110 / Android 16）结果是：服务被系统标记为已绑定，
+        //   但 onServiceConnected 之后彻底不动了，截屏能力也一起失效。
+        //
+        //   教训：onServiceConnected 里重写 serviceInfo 会覆盖掉系统从 XML
+        //   解析出来的 capabilities（包括 canTakeScreenshot 带来的截屏能力）。
+        //   要什么能力就在 XML 里声明什么，别在运行时改。
         Log.i(TAG, "无障碍截屏服务已连接")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val e = event ?: return
-        if (!settings.doubleTapEnabled) return
-        if (e.eventType != AccessibilityEvent.TYPE_TOUCH_INTERACTION_START) return
-
-        // ★ 用"两次触摸开始事件的时间差"来判断双击，而不是去解析坐标。
-        //   这样无论手指点在哪里都能触发 —— 用户不需要瞄准任何东西，
-        //   在取餐台前闭着眼双击两下就行。
-        val now = System.currentTimeMillis()
-        if (now - lastTouchAt <= DOUBLE_TAP_WINDOW_MS) {
-            lastTouchAt = 0
-            // 防抖：一次双击只触发一次，别因为事件密集连发。
-            if (now - lastTriggerAt > DOUBLE_TAP_COOLDOWN_MS) {
-                lastTriggerAt = now
-                CapturePipeline.trigger(applicationContext)
-            }
-        } else {
-            lastTouchAt = now
-        }
+        // ★ 双击触发已暂时下线（见 accessibility_service_config.xml 的说明）：
+        //   canPerformGestures 会让系统以手势服务的方式初始化，导致绑定卡死。
+        //   这里保留空实现，等双击功能以别的方式重新实现时再填。
     }
 
     override fun onInterrupt() {
@@ -158,8 +140,6 @@ class CaptureAccessibilityService : AccessibilityService() {
         else -> "截屏失败（错误码 $code）"
     }
 
-    private val settings by lazy { AppSettings(applicationContext) }
-
     /**
      * 给 takeScreenshot 用的 Executor。
      *
@@ -175,17 +155,8 @@ class CaptureAccessibilityService : AccessibilityService() {
         ContextCompat.getMainExecutor(this)
     }
 
-    private var lastTouchAt = 0L
-    private var lastTriggerAt = 0L
-
     companion object {
         private const val TAG = "CodeIsland"
-
-        /** 两次触摸开始之间小于这个间隔，就算一次双击。 */
-        private const val DOUBLE_TAP_WINDOW_MS = 350L
-
-        /** 两次触发之间的最小间隔，防止连击刷屏。 */
-        private const val DOUBLE_TAP_COOLDOWN_MS = 1500L
 
         /**
          * 当前活着的服务实例。**没有连接时为 null**，调用方必须判空 ——
