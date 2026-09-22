@@ -31,7 +31,11 @@ import com.codeisland.ui.MainActivity
  */
 class FloatingButtonService : LifecycleService() {
 
-    private var windowManager: WindowManager? = null
+    // ★ 名字不叫 windowManager：Kotlin 属性会生成 getWindowManager()，
+    //   而 Android 的 Context/Service 家族里可能已经有同名方法，
+    //   撞上就报 "Accidental override: same JVM signature"。
+    //   加个前缀彻底避开这类问题。
+    private var overlayWindowManager: WindowManager? = null
     private var dotView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
 
@@ -64,7 +68,7 @@ class FloatingButtonService : LifecycleService() {
         if (dotView != null) return
 
         val wm = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
-        windowManager = wm
+        overlayWindowManager = wm
 
         val settings = AppSettings(this)
         val size = (56 * resources.displayMetrics.density).toInt()
@@ -140,7 +144,7 @@ class FloatingButtonService : LifecycleService() {
                     if (moved) {
                         params.x = (startX + dx).toInt()
                         params.y = (startY + dy).toInt()
-                        runCatching { windowManager?.updateViewLayout(view, params) }
+                        runCatching { overlayWindowManager?.updateViewLayout(view, params) }
                     }
                     true
                 }
@@ -166,7 +170,7 @@ class FloatingButtonService : LifecycleService() {
     }
 
     private fun removeDot() {
-        dotView?.let { v -> runCatching { windowManager?.removeView(v) } }
+        dotView?.let { v -> runCatching { overlayWindowManager?.removeView(v) } }
         dotView = null
         layoutParams = null
     }
