@@ -49,6 +49,19 @@ android {
         }
     }
 
+    // ★ 快捷方式（shortcuts.xml）里的 targetPackage 必须写死成真实的 applicationId，
+    //   不能用 ${applicationId} 占位符 —— 那个占位符只在 AndroidManifest 里有效，
+    //   放进 res/xml/*.xml 不会被替换，最终会变成一个非法包名，快捷方式点不开。
+    //   所以用 resValue 生成一个字符串资源；debug 版会自动带上 .debug 后缀。
+    androidComponents {
+        onVariants { variant ->
+            variant.resValues.put(
+                variant.makeResValueKey("string", "shortcut_target_package"),
+                com.android.build.api.variant.ResValue(variant.applicationId.get())
+            )
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
