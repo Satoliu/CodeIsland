@@ -1,26 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ★ 这份配置是这个 App 能不能「一键截屏」的关键。
+  无障碍服务配置。
 
-  canTakeScreenshot        ：允许调用 takeScreenshot()，不必再申请录屏权限，
-                             也就不会弹「开始录制或投放」那个系统对话框。
-  canPerformGestures       ：允许接收手势相关的触摸事件，用来实现「双击屏幕触发」。
-  canRetrieveWindowContent ：API 要求 canTakeScreenshot 时必须同时声明这一项。
-                             ★ 本 App 不去读窗口内容 —— 代码里没有重写
-                             onAccessibilityEvent 里的取节点逻辑，事件类型也
-                             只声明了 touch，所以拿不到你界面上的文字。
+  ★ 关于 canTakeScreenshot 的一个实测教训（2026-09-22，SM-S9110 / Android 16）：
 
-  关于 accessibilityEventTypes：这里写的是 typeWindowStateChanged，
-  看着像是"在监听窗口变化"，其实**代码里 onServiceConnected 会把它
-  动态覆盖成只要 TYPE_TOUCH_INTERACTION_START / _END**（见
-  CaptureAccessibilityService）。之所以在 XML 里还得留一项，
-  是因为这个属性不能为空。实际生效的是代码里那份。
+    之前这份配置里写了 android:canPerformGestures="true"，结果服务在系统的
+    "已绑定服务" 列表里出现了，但 onServiceConnected() **始终没有被回调**——
+    服务等于没活过来。
+
+    原因：canPerformGestures 会让系统以"手势服务"的方式去初始化这个服务，
+    而我们并没有真正实现手势分发，配置和实现对不上，系统就卡在绑定阶段。
+
+    现在改成只声明 we 真正用到的东西：
+      canRetrieveWindowContent = true  （takeScreenshot 的前置要求）
+      canTakeScreenshot        = true  （截屏，不弹录屏授权框）
+
+    「双击屏幕触发」这个功能因此暂时下线了。要恢复它，得改成用
+    dispatchGesture 或另外走一个独立的服务，不能和截屏混在一起。
+
+  accessibilityEventTypes：必须非空，否则配置不合法。
+  这里声明窗口状态变化是"占位"，实际运行时代码不会再覆盖它
+  （旧版本会在 onServiceConnected 里改 serviceInfo，那个做法已删除，
+   见 CaptureAccessibilityService 的注释）。
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
-    android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
     android:canTakeScreenshot="true"
     android:description="@string/a11y_service_description"
